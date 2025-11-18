@@ -8,7 +8,7 @@ from app.models.models import User
 from typing import List
 from app.models.models import UserRole
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 def get_db():

@@ -30,6 +30,7 @@ def register(user: user_schema.UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         hashed_password=hashed_password,
         role=user.role or "reader"
+        #role = "reader"
     )
 
     db.add(new_user)
