@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey, DateTime, UniqueConstraint, Table
 from app.core.database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -31,4 +31,16 @@ class Book(Base):
     author_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    likes = relationship("Like", backref="book")
+
     author = relationship("User", back_populates="books")
+
+    @property  #перетворення на атрибут
+    def likes_count(self):
+        return len(self.likes)
+
+class Like(Base):
+    __tablename__ = "likes"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
