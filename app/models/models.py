@@ -20,7 +20,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     books = relationship("Book", back_populates="author")
-
+    votes = relationship("Vote", backref="user")
 
 class Book(Base):
     __tablename__ = "books"
@@ -31,16 +31,34 @@ class Book(Base):
     author_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    likes = relationship("Like", backref="book")
-
     author = relationship("User", back_populates="books")
 
-    @property  #перетворення на атрибут
-    def likes_count(self):
-        return len(self.likes)
+    votes = relationship("Vote", backref="book")
 
-class Like(Base):
-    __tablename__ = "likes"
+    @property
+    def likes_count(self):
+        return len([v for v in self.votes if v.is_like is True])
+
+    @property
+    def dislikes_count(self):
+        return len([v for v in self.votes if v.is_like is False])
+
+    @property
+    def rating(self):
+        total_votes = self.likes_count + self.dislikes_count
+
+        if total_votes == 0:
+            return 0
+
+        score = (self.likes_count / total_votes) * 10
+
+        return round(score, 1)
+
+
+class Vote(Base):
+    __tablename__ = "votes"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
+
+    is_like = Column(Boolean, nullable=False)

@@ -18,6 +18,8 @@ class BookResponse(BookBase):
     author_id: int
     created_at: datetime
     likes_count: int = 0
+    dislikes_count: int = 0
+    rating: float = 0.0
 
     class Config:
         from_attributes = True

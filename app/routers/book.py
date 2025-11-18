@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user, RoleChecker
-from app.models.models import Book, User, UserRole, Like
+from app.models.models import Book, User, UserRole, Vote
 from app.schemas import book as book_schema
 
 router = APIRouter(
@@ -79,28 +79,33 @@ def delete_book(
     return None
 
 
-@router.post("/{book_id}/like", status_code=status.HTTP_200_OK)
-def like_book(
+@router.post("/{book_id}/vote", status_code=status.HTTP_200_OK)
+def vote_book(
     book_id: int,
+    is_like: bool,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    book = db.get(Book,book_id)
+    book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    like_query = db.query(Like).filter(
-        Like.book_id == book_id,
-        Like.user_id == current_user.id
-    )
-    found_like = like_query.first()
+    found_vote = db.query(Vote).filter(
+        Vote.book_id == book_id,
+        Vote.user_id == current_user.id
+    ).first()
 
-    if found_like:
-        db.delete(found_like)
-        db.commit()
-        return {"message": "Unliked"}
+    if found_vote:
+        if found_vote.is_like == is_like:
+            db.delete(found_vote)
+            message = "Vote removed"
+        else:
+            found_vote.is_like = is_like
+            message = "Vote changed"
     else:
-        new_like = Like(user_id=current_user.id, book_id=book_id)
-        db.add(new_like)
-        db.commit()
-        return {"message": "Liked"}
+        new_vote = Vote(user_id=current_user.id, book_id=book_id, is_like=is_like)
+        db.add(new_vote)
+        message = "Voted successfully"
+
+    db.commit()
+    return {"message": message}
