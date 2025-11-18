@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.core.security import SECRET_KEY, ALGORITHM
 from app.models.models import User
-
+from typing import List
+from app.models.models import UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -40,3 +41,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
 
     return user
+
+
+class RoleChecker:
+    def __init__(self, allowed_roles: List[UserRole]):
+
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, user: User = Depends(get_current_user)):
+        if user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted"
+            )
+        return True
