@@ -1,7 +1,8 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user, RoleChecker
+from app.core.email import send_notification_email
 from app.models.models import Book, User, UserRole, Vote
 from app.schemas import book as book_schema
 
@@ -81,10 +82,11 @@ def delete_book(
 
 @router.post("/{book_id}/vote", status_code=status.HTTP_200_OK)
 def vote_book(
-    book_id: int,
-    is_like: bool,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+        book_id: int,
+        is_like: bool,
+        background_tasks: BackgroundTasks,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
 ):
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
@@ -106,6 +108,17 @@ def vote_book(
         new_vote = Vote(user_id=current_user.id, book_id=book_id, is_like=is_like)
         db.add(new_vote)
         message = "Voted successfully"
+
+        if is_like:
+            author_email = book.author.email if book.author else None
+
+            if author_email:
+                background_tasks.add_task(
+                    send_notification_email,
+                    email_to=[author_email],
+                    subject="Someone liked your book!",
+                    body=f"<h1>Hi!</h1><p>User {current_user.username} liked your book '{book.title}'.</p>"
+                )
 
     db.commit()
     return {"message": message}
