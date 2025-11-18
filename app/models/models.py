@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey, DateTime, UniqueConstraint, Table
 from app.core.database import Base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 
 class UserRole(str, enum.Enum):
@@ -62,3 +62,25 @@ class Vote(Base):
     book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
 
     is_like = Column(Boolean, nullable=False)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+    book_id = Column(Integer, ForeignKey("books.id"))
+
+    parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)   #посилання на батьківський коментар
+
+    user = relationship("User", backref="comments")
+    book = relationship("Book", backref="comments")
+
+    replies = relationship(
+        "Comment",
+        backref=backref("parent", remote_side=[id]),
+        cascade="all, delete"
+    )  #відповіді на цей ж коментар і назад
