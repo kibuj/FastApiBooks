@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.routers import auth, book, admin
 
-app = FastAPI(title="Book API with RBAC")
+app = FastAPI(title="Book API")
 
 
 app.include_router(auth.router)
